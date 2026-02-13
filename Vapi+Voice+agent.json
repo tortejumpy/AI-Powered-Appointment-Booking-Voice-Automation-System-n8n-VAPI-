@@ -1,0 +1,679 @@
+{
+  "name": "Vapi Voice agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "get_availability_tool",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        112,
+        176
+      ],
+      "id": "8fa8e6e7-4182-41b8-8ae0-b981bb4a4ea0",
+      "name": "Webhook",
+      "webhookId": "b75f2695-035f-4c25-b75c-a633e034b64f"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        928,
+        176
+      ],
+      "id": "4fada31a-02f3-479e-94c0-fe0d35228367",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Hello this tool is used to fetch the date and time from the user and check whether that slot is available or not\n\ntime given by the user :  {{ $json.body.message.toolCallList[0].function.arguments.Date }}\n\nthe toolCallId : {{ $json.body.message.toolCalls[0].id }}\n\nCurrent Time : {{ $now }} \n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a helpful assistant whose job is to check whether the time slot provided by the user is available or not.\n\nYou are equipped with the Calendar Tool, which returns all events for a given date.\n\n🧠 Your Task\n\nExtract the requested date and time from the user input:\n\ntime given by the user : {{ $json.body.message.toolCallList[0].function.arguments.Date }}\n\n\nIdentify the current date and time:\n\nCurrent Time : {{ $now }}\n\n\nGet the toolCallId for the response:\n\ntoolCallId : {{ $json.body.message.toolCalls[0].id }}\n\n\nConvert the user’s date/time input (which may be in a casual or natural format such as “tomorrow 3–4 PM” or “25th October 2–3 PM”) into the proper ISO date-time format that the Calendar Tool expects:\n\nDateTime: YYYY-MM-DDTHH:mm:ss\n\n\nUse the Calendar Tool to fetch all events for the converted date.\n\nCompare the user’s requested time slot with existing events:\n\nIf the time range does not overlap, the slot is available.\n\nIf the time range overlaps, the slot is occupied.\n\nReturn the result strictly in the following JSON format:\n\n✅ If slot is available:\n\n{\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Slot {{ $json.body.message.toolCallList[0].function.arguments.Date }} is available\"\n    }\n  ]\n}\n\n\n❌ If slot is occupied:\n\n{\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Slot {{ $json.body.message.toolCallList[0].function.arguments.Date }} is occupied as of {{ $now }}\"\n    }\n  ]\n}\n\n📋 Guidelines\n\nAlways convert natural or relative inputs (like “tomorrow 3–4 PM”, “next Monday 10–11 AM”) into the valid ISO date format before using the Calendar Tool.\n\nAlways fetch events for the exact date specified by the user.\n\nCompare times precisely in 24-hour format.\n\nOutput only valid JSON — no additional explanations or text."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        64
+      ],
+      "id": "1e56a41f-cfe3-457d-98dc-fa6fb2714bcc",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        336,
+        288
+      ],
+      "id": "280cf5e3-67b5-40e9-9c1a-869955101cd2",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LDUXZuw1OH2KGcHZ",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "12345",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        288
+      ],
+      "id": "485eae3d-fc4d-44c4-ac62-b93cff734361",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "tech.mayankagg@gmail.com",
+          "mode": "list",
+          "cachedResultName": "tech.mayankagg@gmail.com"
+        },
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', ``, 'boolean') }}",
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        288
+      ],
+      "id": "934937c0-4d70-4bfc-8158-f3354f190cf1",
+      "name": "Get many events in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "NkAVMWGDixLd9Nlu",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"results\": [\n    {\n      \"toolCallId\": \"call_abc123\",\n      \"result\": \"Successfully processed date: 2025-10-21\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        288
+      ],
+      "id": "9a902bd0-51a1-4388-a911-444f82c3ca2a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "book_thee_slot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        112,
+        608
+      ],
+      "id": "7394cfdd-920e-46f3-aa23-32c91341ed39",
+      "name": "Webhook1",
+      "webhookId": "a4406cbe-9020-4fa1-b070-ce9fc6a908df"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Hello this tool is used to book the Slot for the user using calendar tool\n\ntime given by the user :  {{ $json.body.message.toolCallList[0].function.arguments.Date }}\n\nName of the User :{{ $json.body.message.toolCallList[0].function.arguments.Name }} \n\nthe toolCallId : {{ $json.body.message.toolCalls[0].id }}\n\nCurrent Time : {{ $now }} ",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a helpful assistant whose job is to book the time slot provided by the user in the calendar.\n\nYou are equipped with the Calendar Tool, which allows you to create new events for a specific date and time.\n\n🧠 Your Task\n\nExtract the requested date and time from the user input:\n\ntime given by the user: {{ $json.body.message.toolCallList[0].function.arguments.Date }}\n\n\nExtract the user’s name:\n\nName of the user: {{ $json.body.message.toolCallList[0].function.arguments.Name }}\n\n\nIdentify the current date and time:\n\nCurrent Time: {{ $now }}\n\n\nGet the toolCallId for the response:\n\ntoolCallId: {{ $json.body.message.toolCalls[0].id }}\n\n\nConvert the user’s date/time input (natural formats like “tomorrow 3–4 PM” or “25th October 2–3 PM”) into ISO date-time format required by the Calendar Tool:\n\nDateTime: YYYY-MM-DDTHH:mm:ss\n\n\nCreate/book the calendar event using the Calendar Tool:\n\nInclude the user’s name in the event summary and description, e.g.:\n\n“Rohan’s Appointment”\n\nReturn the result strictly in JSON:\n\n✅ If booking is successful:\n\n{\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Slot {{ $json.body.message.toolCallList[0].function.arguments.Date }} has been successfully booked\"\n    }\n  ]\n}\n\n\n❌ If booking fails (tool error or invalid input):\n\n{\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Failed to book slot {{ $json.body.message.toolCallList[0].function.arguments.Date }} as of {{ $now }}\"\n    }\n  ]\n}\n\n📋 Guidelines\n\nAlways convert natural or relative inputs (like “tomorrow 3–4 PM”, “next Monday 10–11 AM”) into valid ISO date format before booking.\n\nEnsure summary and description of the calendar event include the user’s name.\n\nBook the event for the exact date and time specified by the user.\n\nOutput only valid JSON — no extra text or explanation."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        496
+      ],
+      "id": "ddd3c208-0823-4a56-a651-e43258c5ee36",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        336,
+        720
+      ],
+      "id": "c22fbb1d-350e-44af-8746-66535e7981fd",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LDUXZuw1OH2KGcHZ",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "123456",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        720
+      ],
+      "id": "b89f7037-ecfa-4f42-8d87-6f8cdf0f0e43",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "tech.mayankagg@gmail.com",
+          "mode": "list",
+          "cachedResultName": "tech.mayankagg@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "useDefaultReminders": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Use_Default_Reminders', ``, 'boolean') }}",
+        "additionalFields": {
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        720
+      ],
+      "id": "c04b58bf-fc9d-4a0e-b252-a96fe0aafb52",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "NkAVMWGDixLd9Nlu",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        928,
+        608
+      ],
+      "id": "aa8ef507-ea03-457c-9099-8f203ba43569",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"results\": [\n    {\n      \"toolCallId\": \"call_abc123\",\n      \"result\": \"Successfully processed date: 2025-10-21\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        720
+      ],
+      "id": "5a9d7caa-7809-4768-b544-9582f92fd7e5",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "user_detail",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        112,
+        1040
+      ],
+      "id": "72f7f776-fb36-4ee6-ad1d-deca6409f58a",
+      "name": "Webhook2",
+      "webhookId": "9991ecc8-9978-4ff4-ad65-b75209db8473"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        928,
+        1040
+      ],
+      "id": "ddbf09e2-fd04-42e0-adb7-51dd8f777b56",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are helpful ai Assistant useful for storing the user name , and phone no \n\nName :  {{ $json.body.message.toolCalls[0].function.arguments.Name }}\nPhone_no : {{ $json.body.message.toolCalls[0].function.arguments[\"Phone no\"] }}\ntoolCallId : {{ $json.body.message.toolCalls[0].id }}\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a helpful assistant whose task is to collect and store user information (Name and Phone Number) using the Google Sheets tool.\n\n🧠 Your Task\n\nExtract the user’s Name and Phone Number from the conversation.\n\nSave this information securely in Google Sheets using the designated tool.\n\nOnce the information is successfully saved, respond strictly in the following JSON format:\n\n{\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $json.body.message.toolCalls[0].id }}\",\n      \"result\": \"I have saved the information\"\n    }\n  ]\n}\n\n📋 Guidelines\n\nAlways store the correct Name and Phone Number as provided by the user.\n\nDo not include any additional text outside the JSON response.\n\nIf there is an error storing the data, respond politely in JSON indicating the failure (e.g., \"Failed to save information\").\n\nDo not expose technical or tool details to the user.\n\nEnsure all responses are valid JSON only."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        1040
+      ],
+      "id": "43a27e9c-d3fe-4c27-b54e-4f5252d5b084",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1W3phEOSDZvur6gStsmukc65okbjgKdzZP9TPkfabEUs",
+          "mode": "list",
+          "cachedResultName": "Dentist",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W3phEOSDZvur6gStsmukc65okbjgKdzZP9TPkfabEUs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W3phEOSDZvur6gStsmukc65okbjgKdzZP9TPkfabEUs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+            "Phone no": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone_no', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone no",
+              "displayName": "Phone no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        704,
+        1296
+      ],
+      "id": "e4dd7834-9566-45f3-a405-addd28cf0149",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "geXRrqF69oD7TwOA",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1234567",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        1296
+      ],
+      "id": "5c8ce192-9e92-4302-842f-a853a68fb669",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"results\": [\n    {\n      \"toolCallId\": \"call_abc123\",\n      \"result\": \"Successfully processed date: 2025-10-21\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        1264
+      ],
+      "id": "3a6d354d-7458-4406-a317-2623ea74eee1",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        336,
+        1264
+      ],
+      "id": "ccf6072a-1b41-48b7-9247-23af189ba740",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LDUXZuw1OH2KGcHZ",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## This Workflow is used to Check the availability",
+        "height": 432,
+        "width": 1136
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "97812c8d-bdfb-4783-9071-0e472be92fcc",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## This is used for booking the slot",
+        "height": 400,
+        "width": 1232,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -48,
+        464
+      ],
+      "typeVersion": 1,
+      "id": "968545e7-2c21-4ab9-aa72-4eb9a5947134",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## This tool is used to ftech the User information and Store it in Google sheets",
+        "height": 496,
+        "width": 1456,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -160,
+        912
+      ],
+      "typeVersion": 1,
+      "id": "60c226c1-f3dd-4074-b84a-2499d99715fd",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5a1b83c1-e0a3-49f4-ba2c-f423f0c5b3c0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0cc1de0dd4f90abc341a1baf6f6046729327a33bc357c212b26b606f44fae410"
+  },
+  "id": "2A83D0vXamXl7njA",
+  "tags": []
+}
